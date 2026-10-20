@@ -1,4 +1,5 @@
 import {DURATION,ease} from './transitions.js';
+import {deformTigerVertex,tigerBehavior,tigerRigDiagnostics} from './tiger-behavior.js';
 
 const TAU=Math.PI*2;
 const smooth=(a,b,x)=>ease((x-a)/(b-a));
@@ -47,7 +48,7 @@ export function motionState(kind,t){
  if(kind==='whale'){const w=whaleSwim(t);return Math.abs(Math.cos(w.phase))<.25?'momentum / suspended glide':Math.cos(w.phase)>0?'slow vertical power stroke':'controlled fluke recovery';}
  if(kind==='manta'){const m=mantaGlide(t);return m.effort<.22?'suspended glide':Math.cos(m.phase)<0?'flowing pectoral downstroke':'soft pectoral recovery';}
  if(kind==='saola')return saolaStep(t).active?'cautious hoof placement (inferred)':gesture(t,197,21,6)>.1?'gentle head carriage (inferred)':'breathing / quiet pause (inferred)';
- if(kind==='tiger')return gesture(t,151,22,6)>.12?'alert head turn / listening':gesture(t,139,27,7)>.12?'poised shoulder / weight shift':'feline breathing / tail balance';
+ if(kind==='tiger')return tigerBehavior(t).state;
  if(kind==='shark')return sharkSwim(t).active>.70?'stronger propulsion / gentle bank':'steady lateral swimming';
  if(kind===0||kind==='rhino')return gesture(t,7,19,5.5)>.12?'listening / head carriage':'quiet breathing / settled stance';
  if(kind===1||kind==='turtle'){const p=strokePhase(t);return p<.23?'power stroke':p<.70?'recovery / feathering':'glide / steering';}
@@ -56,6 +57,7 @@ export function motionState(kind,t){
  return 'quiet rest';
 }
 export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
+ if(species==='tiger')return deformTigerVertex(x,y,z,t,out,amplitude);
  let px=x,py=y,pz=z;
  if(species===0||species==='rhino'){
   const torso=smooth(-1.65,-.7,x)*(1-smooth(1.2,1.85,x))*smooth(-.8,-.15,y);
@@ -143,27 +145,6 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
   pz+=.10*held(t,127,21)+.055*Math.sin(t*.13);
   py+=.022*Math.sin(t*.19+.5);
  }
- if(species==='tiger'){
-  const planted=smooth(-1.20,-.65,y),torso=smooth(-1.55,-.90,x)*(1-smooth(.85,1.40,x))*smooth(-.60,-.15,y);
-  const breath=Math.sin(TAU*(t/5.7+.028*Math.sin(t*.10)));
-  py+=(y-.08)*.018*breath*torso;pz+=z*.026*breath*torso;
-  // A small anticipatory forward settle through the shoulder, with fixed paws.
-  const poise=gesture(t,139,27,7),balance=held(t,143,15);
-  px+=(-.040*poise+.013*held(t,145,19))*planted;
-  pz+=.026*balance*planted;
-  py-=.032*poise*planted*(1-smooth(-.45,.65,x));
-  const head=(1-smooth(-1.80,-1.25,x))*smooth(-.10,.30,y),attention=gesture(t,151,22,6),direction=hash(Math.floor(t/22)+157)*2-1;
-  const yaw=(.085*direction*attention+.014*held(t,159,13))*head,dx=px+1.40;
-  px=-1.40+dx*Math.cos(yaw)+pz*Math.sin(yaw);pz=-dx*Math.sin(yaw)+pz*Math.cos(yaw);
-  const nod=(.032*attention-.016*held(t,163,17))*head,hx=px+1.40,hy=py-.26;
-  px=-1.40+hx*Math.cos(nod)-hy*Math.sin(nod);py=.26+hx*Math.sin(nod)+hy*Math.cos(nod);
-  const side=Math.sign(z)||1,ear=smooth(.79,1.05,y)*(1-smooth(-1.65,-1.40,x));
-  pz+=side*.025*gesture(t,side>0?167:173,side>0?17:23,1.6)*ear;
-  // Balance travels down the tail with lag; the curled tip makes a small response.
-  const tail=smooth(1.36,3.15,x),lag=Math.max(0,x-1.36)*.80;
-  pz+=(.115*held(t-lag,143,15)+.040*Math.sin(t*.43-lag*.60)+.040*gesture(t-lag,179,29,4.2))*tail;
-  py+=(.020*held(t-lag,181,21)+.014*Math.sin(t*.31-lag*.4))*tail;
- }
  if(species==='saola'){
   const step=saolaStep(t),standing=smooth(-1.40,-.20,y),torso=smooth(-1.20,-.65,x)*(1-smooth(.95,1.40,x))*smooth(-.32,.05,y)*(1-smooth(.80,.98,y));
   const breath=Math.sin(TAU*(t/6.2+.020*Math.sin(t*.09)));
@@ -229,7 +210,7 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
 
 export function motionWeights(elapsed){return elapsed<0?[1,0]:[1-ease(elapsed/.65),ease((elapsed-(DURATION-.65))/.65)];}
 
-export function createNaturalMotion(pairs){
+export function createNaturalMotion(pairs,{tigerClockOrigin=0,tigerTimeOffset=0}={}){
  const layouts=Array.from({length:pairs[0].length},(_,species)=>{
   const ids=new Uint16Array(pairs.length*3),unique=[],lookup=new Map();
   for(let face=0;face<pairs.length;face++)for(let corner=0;corner<3;corner++){
@@ -239,10 +220,10 @@ export function createNaturalMotion(pairs){
   }
   return{kind:pairs[0][species].animal,ids,rest:new Float32Array(unique),posed:new Float32Array(unique.length),delta:new Float32Array(unique.length)};
  });
- const point=new Float64Array(3);let maxDisplacement=0,behavior='quiet rest';
- function pose(species,t){const layout=layouts[species];behavior=motionState(layout.kind,t);for(let i=0;i<layout.rest.length;i+=3){const {rest,posed,delta}=layout;deformVertex(layout.kind,rest[i],rest[i+1],rest[i+2],t,point);for(let axis=0;axis<3;axis++){posed[i+axis]=point[axis];delta[i+axis]=posed[i+axis]-rest[i+axis];}maxDisplacement=Math.max(maxDisplacement,Math.hypot(delta[i],delta[i+1],delta[i+2]));}}
- function apply(positions,species,t,elapsed=-1){
-  maxDisplacement=0;const [outWeight,inWeight]=motionWeights(elapsed),from=layouts[species],to=layouts[(species+1)%layouts.length];
+ const point=new Float64Array(3);let maxDisplacement=0,behavior='quiet rest',tiger=null;
+ function pose(species,t){const layout=layouts[species],sampleTime=layout.kind==='tiger'?Math.max(0,t-tigerClockOrigin+tigerTimeOffset):t;behavior=motionState(layout.kind,sampleTime);tiger=layout.kind==='tiger'?tigerRigDiagnostics(sampleTime):null;for(let i=0;i<layout.rest.length;i+=3){const {rest,posed,delta}=layout;deformVertex(layout.kind,rest[i],rest[i+1],rest[i+2],sampleTime,point);for(let axis=0;axis<3;axis++){posed[i+axis]=point[axis];delta[i+axis]=posed[i+axis]-rest[i+axis];}maxDisplacement=Math.max(maxDisplacement,Math.hypot(delta[i],delta[i+1],delta[i+2]));}}
+ function apply(positions,species,t,elapsed=-1,sourceCaptured=false){
+  maxDisplacement=0;let [outWeight,inWeight]=motionWeights(elapsed);if(elapsed>=0&&sourceCaptured)outWeight=0;const from=layouts[species],to=layouts[(species+1)%layouts.length];
   if(outWeight)pose(species,t);if(inWeight)pose((species+1)%layouts.length,t);
   for(let vertex=0;vertex<from.ids.length;vertex++)for(let axis=0;axis<3;axis++){
    const i=vertex*3+axis,a=from.ids[vertex]*3+axis,b=to.ids[vertex]*3+axis;
@@ -251,5 +232,5 @@ export function createNaturalMotion(pairs){
    positions[i]=elapsed<0?from.posed[a]:positions[i]+(outWeight?from.delta[a]*outWeight:0)+(inWeight?to.delta[b]*inWeight:0);
   }
  }
- return{apply,get diagnostics(){return{sharedVertices:layouts.map(l=>l.rest.length/3),maxDisplacement,behavior};}};
+ return{apply,get diagnostics(){return{sharedVertices:layouts.map(l=>l.rest.length/3),maxDisplacement,behavior,...(tiger?{tiger}:{} )};}};
 }
