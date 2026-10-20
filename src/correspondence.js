@@ -1,5 +1,17 @@
 const distance=(a,b)=>a.reduce((s,v,i)=>s+(v-b[i])**2,0);
 function region(face){const {x,y,z}=face.center;
+ if(face.animal==='whale'){
+  if(x<-1.65)return 'head';
+  if(x>2.25)return 'tail';
+  if(Math.abs(z)>.65&&y<-.15)return 'forelimb';
+  return 'body';
+ }
+ if(face.animal==='manta'){
+  if(x<-1.06&&Math.abs(z)<.72)return 'head';
+  if(x>1.24&&Math.abs(z)<.15)return 'tail';
+  if(Math.abs(z)>.70)return 'forelimb';
+  return 'body';
+ }
  if(face.animal==='saola'){
   if(x<-1.26||y>.98)return 'head';
   if(x>1.40)return 'tail';

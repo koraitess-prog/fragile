@@ -21,6 +21,15 @@ export function sharkSwim(t){
  const active=.5+.5*Math.sin(t*.14-.6);
  return{phase:TAU*(t/3.6-.09*Math.cos(t*.14-.6)),strength:.88+.20*active,active};
 }
+export function mantaGlide(t){
+ // Slow paired strokes with spanwise lag; quiet glide phrases stay in motion.
+ const phase=TAU*(t/7.8+.025*Math.sin(t*.10)),effort=.5+.5*Math.sin(t*.115-.8);
+ return{phase,effort,strength:.12+.085*effort};
+}
+export function whaleSwim(t){
+ // Authored slow cruising, deliberately heavier than the manta's 7.8 s stroke.
+ return{phase:TAU*(t/12.5+.014*Math.sin(t*.06)),strength:.87+.10*(.5+.5*Math.sin(t*.075-.7))};
+}
 // An authored bovid-informed placement sequence, NOT documented saola kinematics.
 // Pause, four short forward placements, pause, four small return placements.
 // Hoof world positions stay fixed during support; only one hoof swings at once.
@@ -35,6 +44,8 @@ export function saolaStep(t){
  return{body,feet,lift,active:lift.some(v=>v>1e-6)};
 }
 export function motionState(kind,t){
+ if(kind==='whale'){const w=whaleSwim(t);return Math.abs(Math.cos(w.phase))<.25?'momentum / suspended glide':Math.cos(w.phase)>0?'slow vertical power stroke':'controlled fluke recovery';}
+ if(kind==='manta'){const m=mantaGlide(t);return m.effort<.22?'suspended glide':Math.cos(m.phase)<0?'flowing pectoral downstroke':'soft pectoral recovery';}
  if(kind==='saola')return saolaStep(t).active?'cautious hoof placement (inferred)':gesture(t,197,21,6)>.1?'gentle head carriage (inferred)':'breathing / quiet pause (inferred)';
  if(kind==='tiger')return gesture(t,151,22,6)>.12?'alert head turn / listening':gesture(t,139,27,7)>.12?'poised shoulder / weight shift':'feline breathing / tail balance';
  if(kind==='shark')return sharkSwim(t).active>.70?'stronger propulsion / gentle bank':'steady lateral swimming';
@@ -175,6 +186,43 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
   px=-1.15+dx*Math.cos(turn)+pz*Math.sin(turn);pz=-dx*Math.sin(turn)+pz*Math.cos(turn);
   const tail=smooth(1.40,1.65,x)*(1-smooth(.16,.36,y));pz+=.026*held(t-.6,191,17)*tail;
   px+=step.body;
+ }
+ if(species==='manta'){
+  const swim=mantaGlide(t),span=Math.abs(z),side=Math.sign(z)||1;
+  const wing=smooth(.62,1.10,span),outer=smooth(.95,3.15,span);
+  // A continuous shared-vertex bend, not rigidly flapping separate triangles.
+  // Stable disc roots, increasing distal excursion, slight trailing-edge delay.
+  const lag=.40*outer+.10*(x+.95)*outer;
+  const bank=.025*held(t,233,19),stroke=.065+swim.strength*Math.sin(swim.phase-lag);
+  const angle=-side*(stroke+.018*side*held(t,239,23))*wing,dy=py,dz=pz-side*.62;
+  py=dy*Math.cos(angle)-dz*Math.sin(angle);pz=side*.62+dy*Math.sin(angle)+dz*Math.cos(angle);
+  const twist=.018*Math.cos(swim.phase-lag)*outer,dx=px-.20;
+  px=.20+dx*Math.cos(twist)-py*Math.sin(twist);py=dx*Math.sin(twist)+py*Math.cos(twist);
+  const tail=smooth(1.18,3.20,x);pz+=.035*Math.sin(t*.36-(x-1.18)*.65)*tail;
+  const pitch=.012*held(t,241,21)-.010*Math.cos(swim.phase-.35);
+  let nx=px*Math.cos(pitch)-py*Math.sin(pitch);py=px*Math.sin(pitch)+py*Math.cos(pitch);px=nx;
+  const ny=py*Math.cos(bank)-pz*Math.sin(bank);pz=py*Math.sin(bank)+pz*Math.cos(bank);py=ny;
+  // Bounded forward drift and a coordinated lift, with no end-of-path reset.
+  px+=.105*held(t,251,24)-.045*Math.sin(swim.phase-.3);
+  py+=.060*Math.sin(swim.phase-.65)+.025*held(t,257,27);
+  pz+=.055*held(t,263,29);
+ }
+ if(species==='whale'){
+  const swim=whaleSwim(t),u=Math.max(0,Math.min(1,(x+1.50)/5.32)),phase=swim.phase-.62*(x+1.50);
+  const heave=(.006+.30*u**2.6)*swim.strength;
+  const slope=.78*u**1.6/5.32*swim.strength*Math.sin(phase)-.62*heave*Math.cos(phase);
+  // Both horizontal flukes follow the same vertical centerline and tangent.
+  // A stable forebody and growing posterior wave convey mass, not fish-like yaw.
+  const pitch=Math.atan(slope);px=x-y*Math.sin(pitch);py=heave*Math.sin(phase)+y*Math.cos(pitch);
+  const side=Math.sign(z)||1,flipper=smooth(.60,1.02,Math.abs(z))*(1-smooth(-.45,-.10,x));
+  const trim=side*.020*held(t,271,29)*flipper,fy=py+.25,fz=pz-side*.55;
+  py=-.25+fy*Math.cos(trim)-fz*Math.sin(trim);pz=side*.55+fy*Math.sin(trim)+fz*Math.cos(trim);
+  const attitude=.010*held(t,277,31),bank=.010*held(t,281,35);
+  let nx=px*Math.cos(attitude)-py*Math.sin(attitude);py=px*Math.sin(attitude)+py*Math.cos(attitude);px=nx;
+  const ny=py*Math.cos(bank)-pz*Math.sin(bank);pz=py*Math.sin(bank)+pz*Math.cos(bank);py=ny;
+  px+=.12*held(t,283,36)-.025*Math.sin(swim.phase-.4);
+  py+=.045*Math.sin(swim.phase-.55)+.018*held(t,293,39);
+  pz+=.025*held(t,307,41);
  }
  out[0]=x+(px-x)*amplitude;out[1]=y+(py-y)*amplitude;out[2]=z+(pz-z)*amplitude;return out;
 }

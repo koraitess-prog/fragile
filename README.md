@@ -10,7 +10,7 @@ A minimalist interactive 3D artwork about endangered species. White triangular w
 - Click or tap the animal to transform it. Dragging does not trigger transformation.
 - Press Enter or Space when the sculpture is focused to transform.
 
-The cycle is **Black Rhinoceros → Hawksbill Sea Turtle → Tapanuli Orangutan → Chinese Pangolin → Philippine Eagle → Great Hammerhead → Sunda Tiger → Saola → Black Rhinoceros**. The eagle is posed in flight, with controlled wing strokes and quiet glides. The hammerhead swims with a lateral body wave, tail propulsion and restrained banking. The tiger holds a poised stance with breathing, alert head movements, weight shifts and tail balance. The saola has cautious hoof placements with quiet pauses and independent ear responses; these are authored inferences from related bovid mechanics, not a documented saola gait.
+The cycle is **Black Rhinoceros → Hawksbill Sea Turtle → Tapanuli Orangutan → Chinese Pangolin → Philippine Eagle → Great Hammerhead → Sunda Tiger → Saola → Oceanic Manta Ray → Blue Whale → Black Rhinoceros**. The eagle is posed in flight, with controlled wing strokes and quiet glides. The hammerhead swims with a lateral body wave, tail propulsion and restrained banking. The tiger holds a poised stance with breathing, alert head movements, weight shifts and tail balance. The saola has cautious hoof placements with quiet pauses and independent ear responses; these are authored inferences from related bovid mechanics, not a documented saola gait. The oceanic manta uses slow paired pectoral strokes, distal fin flexion, passive tail motion and restrained gliding. The blue whale has slower vertical tail propulsion, a stable forebody and small pectoral trim.
 
 Each animal uses an original connected **220-triangle / 112-vertex** mesh. At rest, shared vertices deform together. During the transition, persistent face fragments spread through a broad 3D volume before reconstructing the next species. There is no polygon surface-fill pass.
 
@@ -39,7 +39,7 @@ npm test
 npm run test:framing
 ```
 
-The checks cover all eight connected meshes, shared-vertex movement, transition endpoints, fragment correspondence, mouse/touch gesture handling, and camera safety across portrait and landscape views.
+The checks cover all ten connected meshes, shared-vertex movement, transition endpoints, fragment correspondence, mouse/touch gesture handling, and camera safety across portrait and landscape views.
 
 ## Publish updates
 

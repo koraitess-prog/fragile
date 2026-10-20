@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {deformVertex,motionState} from '../src/natural-motion.js';
 import {spreadPoint} from '../src/fragment-spread.js';
 const a=new Float64Array(3),b=new Float64Array(3),report=[];
-for(const kind of ['rhino','turtle','orangutan','eagle','shark','tiger','saola']){
+for(const kind of ['rhino','turtle','orangutan','eagle','shark','tiger','saola','manta','whale']){
  const model=JSON.parse(fs.readFileSync(new URL(`../public/models/${kind}.json`,import.meta.url))),states=new Set();let largestStep=0,cycleDifference=0;
  for(let frame=0;frame<=2400;frame++){
   const t=frame/20;states.add(motionState(kind,t));

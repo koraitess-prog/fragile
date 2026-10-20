@@ -16,6 +16,8 @@
     "model:shark": "node scripts/build-shark.js",
     "model:tiger": "node scripts/build-tiger.js",
     "model:saola": "node scripts/build-saola.js",
+    "model:manta": "node scripts/build-manta.js",
+    "model:whale": "node scripts/build-whale.js",
     "model:pangolin": "node scripts/build-pangolin.js",
     "model:orangutan": "node scripts/build-orangutan.js"
   },

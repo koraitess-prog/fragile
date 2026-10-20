@@ -6,7 +6,7 @@ import {faceData,correspondence} from '../src/geometry.js';
 import {createFragments} from '../src/fragments.js';
 import {createNaturalMotion} from '../src/natural-motion.js';
 const models=species.map(s=>JSON.parse(fs.readFileSync(new URL(`../public/models/${s.id}.json`,import.meta.url))));
-assert.deepEqual(species.map(s=>s.id),['rhino','turtle','orangutan','pangolin','eagle','shark','tiger','saola']);
+assert.deepEqual(species.map(s=>s.id),['rhino','turtle','orangutan','pangolin','eagle','shark','tiger','saola','manta','whale']);
 const pairs=correspondence(...models.map(faceData)),approved=correspondence(...models.slice(0,2).map(faceData));
 assert.deepEqual(pairs.map(p=>p.slice(0,2)),approved,'approved fragment identity changed');
 assert.deepEqual(pairs.map(p=>p.slice(0,4)),correspondence(...models.slice(0,4).map(faceData)),'existing four-species fragment slots changed');
@@ -14,6 +14,8 @@ assert.deepEqual(pairs.map(p=>p.slice(0,5)),correspondence(...models.slice(0,5).
 assert.deepEqual(pairs.map(p=>p.slice(0,6)),correspondence(...models.slice(0,6).map(faceData)),'approved six-species fragment slots changed');
 assert.deepEqual(pairs.map(p=>p.slice(0,7)),correspondence(...models.slice(0,7).map(faceData)),'approved seven-species fragment slots changed');
 const fragments=createFragments(pairs),motion=createNaturalMotion(pairs);
+assert.deepEqual(pairs.map(p=>p.slice(0,8)),correspondence(...models.slice(0,8).map(faceData)),'approved eight-species fragment slots changed');
+assert.deepEqual(pairs.map(p=>p.slice(0,9)),correspondence(...models.slice(0,9).map(faceData)),'approved nine-species fragment slots changed');
 const normal=(p,i)=>new THREE.Vector3().fromArray(p,i+3).sub(new THREE.Vector3().fromArray(p,i)).cross(new THREE.Vector3().fromArray(p,i+6).sub(new THREE.Vector3().fromArray(p,i)));
 const report=[];
 for(let source=0;source<models.length;source++){
