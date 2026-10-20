@@ -1,0 +1,26 @@
+{
+  "name": "fragile-sculpture",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4174",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4174",
+    "test": "node scripts/collection-tests.js && node scripts/inspection-tests.js",
+    "test:collection": "node scripts/collection-tests.js",
+    "test:framing": "node scripts/framing-tests.js",
+    "test:motion": "node scripts/species-motion-tests.js",
+    "models": "node scripts/build-models.js && node scripts/build-correspondence.js",
+    "model:eagle": "node scripts/build-eagle.js",
+    "model:pangolin": "node scripts/build-pangolin.js",
+    "model:orangutan": "node scripts/build-orangutan.js"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "vite": "7.1.0"
+  }
+}

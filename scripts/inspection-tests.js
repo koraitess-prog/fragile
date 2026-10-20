@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {createGestureTracker} from '../src/inspection.js';
+const event=(x,y,extra={})=>({clientX:x,clientY:y,pointerId:1,button:0,isPrimary:true,...extra});
+const gesture=createGestureTracker();
+gesture.start(event(0,0));assert.equal(gesture.finish(event(0,0)),true,'stationary click');
+gesture.start(event(0,0));gesture.move(event(3,4));assert.equal(gesture.finish(event(3,4)),true,'tap jitter');
+gesture.start(event(0,0));gesture.move(event(8,0));assert.equal(gesture.finish(event(8,0)),false,'threshold boundary');
+gesture.start(event(0,0));gesture.move(event(40,0));gesture.move(event(0,0));assert.equal(gesture.finish(event(0,0)),false,'returning drag');
+gesture.start(event(0,0));assert.equal(gesture.finish(event(20,0)),false,'release displacement without move');
+gesture.start(event(0,0));gesture.cancel();assert.equal(gesture.finish(event(0,0)),false,'cancelled touch');
+gesture.start(event(0,0));gesture.start(event(10,10,{pointerId:2,isPrimary:false}));assert.equal(gesture.finish(event(0,0)),false,'multitouch cannot transform');
+gesture.start(event(0,0));assert.equal(gesture.finish(event(0,0,{pointerId:2})),false);assert.equal(gesture.finish(event(0,0)),true,'unrelated pointer');
+gesture.start(event(0,0,{button:2}));assert.equal(gesture.finish(event(0,0)),false,'right click');
+console.log('PASS: click jitter, threshold, returning drag, release movement, cancellation, multitouch, pointer ownership and right click.');
