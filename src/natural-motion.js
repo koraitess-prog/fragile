@@ -21,7 +21,21 @@ export function sharkSwim(t){
  const active=.5+.5*Math.sin(t*.14-.6);
  return{phase:TAU*(t/3.6-.09*Math.cos(t*.14-.6)),strength:.88+.20*active,active};
 }
+// An authored bovid-informed placement sequence, NOT documented saola kinematics.
+// Pause, four short forward placements, pause, four small return placements.
+// Hoof world positions stay fixed during support; only one hoof swings at once.
+export function saolaStep(t){
+ const u=((t%60)+60)%60,body=-.30*(ease((u-4)/12)-ease((u-31)/12)),feet=[],lift=[];
+ for(let order=0;order<4;order++){
+  const forward=(u-(4+order*3))/2.15,back=(u-(31+(3-order)*3))/2.15;
+  feet.push(-.30*(ease(forward)-ease(back)));
+  const bump=v=>v>0&&v<1?Math.sin(Math.PI*ease(v))**2:0;
+  lift.push(.075*(bump(forward)+bump(back)));
+ }
+ return{body,feet,lift,active:lift.some(v=>v>1e-6)};
+}
 export function motionState(kind,t){
+ if(kind==='saola')return saolaStep(t).active?'cautious hoof placement (inferred)':gesture(t,197,21,6)>.1?'gentle head carriage (inferred)':'breathing / quiet pause (inferred)';
  if(kind==='tiger')return gesture(t,151,22,6)>.12?'alert head turn / listening':gesture(t,139,27,7)>.12?'poised shoulder / weight shift':'feline breathing / tail balance';
  if(kind==='shark')return sharkSwim(t).active>.70?'stronger propulsion / gentle bank':'steady lateral swimming';
  if(kind===0||kind==='rhino')return gesture(t,7,19,5.5)>.12?'listening / head carriage':'quiet breathing / settled stance';
@@ -138,6 +152,29 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
   const tail=smooth(1.36,3.15,x),lag=Math.max(0,x-1.36)*.80;
   pz+=(.115*held(t-lag,143,15)+.040*Math.sin(t*.43-lag*.60)+.040*gesture(t-lag,179,29,4.2))*tail;
   py+=(.020*held(t-lag,181,21)+.014*Math.sin(t*.31-lag*.4))*tail;
+ }
+ if(species==='saola'){
+  const step=saolaStep(t),standing=smooth(-1.40,-.20,y),torso=smooth(-1.20,-.65,x)*(1-smooth(.95,1.40,x))*smooth(-.32,.05,y)*(1-smooth(.80,.98,y));
+  const breath=Math.sin(TAU*(t/6.2+.020*Math.sin(t*.09)));
+  py+=(y-.20)*.012*breath*torso;pz+=z*.018*breath*torso;
+  const balance=.016*held(t,191,17)+.20*(step.lift[2]+step.lift[3]-step.lift[0]-step.lift[1]);pz+=balance*standing;
+  py-=.06*Math.max(...step.lift)*standing;
+  const side=z>0?1:-1,order=x<0?(side>0?1:3):(side>0?0:2);
+  const leg=(1-smooth(-1.28,-.26,y))*smooth(.12,.22,Math.abs(z));
+  px+=(step.feet[order]-step.body)*leg;py+=step.lift[order]*leg;
+  // Independent small ear adjustments, kept spatially clear of the horns.
+  const ear=smooth(.26,.62,Math.abs(z))*smooth(.70,.90,y)*(1-smooth(-1.05,-.75,x));
+  const listen=(.025*held(t,side>0?193:199,side>0?11:14)+.075*gesture(t,side>0?203:211,side>0?17:23,1.8))*ear;
+  const ey=py-.85,ez=pz-side*.25,earAngle=side*listen;
+  py=.85+ey*Math.cos(earAngle)-ez*Math.sin(earAngle);pz=side*.25+ey*Math.sin(earAngle)+ez*Math.cos(earAngle);
+  // Horn vertices have unit head weight: they move as rigid parts of the skull.
+  const head=Math.max((1-smooth(-1.45,-1.05,x))*smooth(-.15,.25,y),smooth(.98,1.25,y));
+  const attention=gesture(t,197,21,6),nod=(.042*held(t,217,16)-.040*attention)*head;
+  const hx=px+1.15,hy=py-.62;px=-1.15+hx*Math.cos(nod)-hy*Math.sin(nod);py=.62+hx*Math.sin(nod)+hy*Math.cos(nod);
+  const turn=.034*held(t,223,19)*head,dx=px+1.15;
+  px=-1.15+dx*Math.cos(turn)+pz*Math.sin(turn);pz=-dx*Math.sin(turn)+pz*Math.cos(turn);
+  const tail=smooth(1.40,1.65,x)*(1-smooth(.16,.36,y));pz+=.026*held(t-.6,191,17)*tail;
+  px+=step.body;
  }
  out[0]=x+(px-x)*amplitude;out[1]=y+(py-y)*amplitude;out[2]=z+(pz-z)*amplitude;return out;
 }

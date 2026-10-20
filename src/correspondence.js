@@ -1,5 +1,11 @@
 const distance=(a,b)=>a.reduce((s,v,i)=>s+(v-b[i])**2,0);
 function region(face){const {x,y,z}=face.center;
+ if(face.animal==='saola'){
+  if(x<-1.26||y>.98)return 'head';
+  if(x>1.40)return 'tail';
+  if(y<-.30&&Math.abs(z)>.18)return x<0?'forelimb':'hindlimb';
+  return 'body';
+ }
  if(face.animal==='tiger'){
   if(x<-1.5)return 'head';
   if(x>1.4)return 'tail';
