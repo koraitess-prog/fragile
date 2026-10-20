@@ -13,6 +13,7 @@
     "test:motion": "node scripts/species-motion-tests.js",
     "models": "node scripts/build-models.js && node scripts/build-correspondence.js",
     "model:eagle": "node scripts/build-eagle.js",
+    "model:shark": "node scripts/build-shark.js",
     "model:pangolin": "node scripts/build-pangolin.js",
     "model:orangutan": "node scripts/build-orangutan.js"
   },

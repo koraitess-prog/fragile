@@ -16,7 +16,13 @@ export function eagleFlight(t){
  const beat=TAU*2*u/.68;
  return{envelope,beat,stroke:.22*Math.sin(beat)*envelope,outerLag:.055*(Math.sin(beat-.36)-Math.sin(beat))*envelope,twist:.065*Math.cos(beat)*envelope};
 }
+export function sharkSwim(t){
+ // Continuous phase: slightly quicker strokes during an unhurried effort phrase.
+ const active=.5+.5*Math.sin(t*.14-.6);
+ return{phase:TAU*(t/3.6-.09*Math.cos(t*.14-.6)),strength:.88+.20*active,active};
+}
 export function motionState(kind,t){
+ if(kind==='shark')return sharkSwim(t).active>.70?'stronger propulsion / gentle bank':'steady lateral swimming';
  if(kind===0||kind==='rhino')return gesture(t,7,19,5.5)>.12?'listening / head carriage':'quiet breathing / settled stance';
  if(kind===1||kind==='turtle'){const p=strokePhase(t);return p<.23?'power stroke':p<.70?'recovery / feathering':'glide / steering';}
  if(kind===2||kind==='orangutan')return gesture(t,11,23,6)>.12?'attention shift':gesture(t,3,17,4.2)>.12?'shoulder / arm settling':'quiet breathing / balance';
@@ -94,6 +100,22 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
   const nextY=py*Math.cos(pitch)-pz*Math.sin(pitch);pz=py*Math.sin(pitch)+pz*Math.cos(pitch);py=nextY;
   nextX=px*Math.cos(roll)-py*Math.sin(roll);py=px*Math.sin(roll)+py*Math.cos(roll);px=nextX;
   py+=.028*Math.sin(t*.29)+.032*flight.envelope*Math.cos(flight.beat-.5);
+ }
+ if(species==='shark'){
+  const swim=sharkSwim(t),u=Math.max(0,Math.min(1,(x+1.65)/4.70)),phase=swim.phase-1.04*(x+1.65);
+  const amplitude=(.012+.26*u*u+.045*u**4)*swim.strength;
+  const slope=(.52*u+.18*u**3)/4.70*swim.strength*Math.sin(phase)-1.04*amplitude*Math.cos(phase);
+  // The wave grows toward the peduncle. Rotate each cross-section with the
+  // centerline tangent so both caudal lobes push sideways as ONE vertical fin.
+  const yaw=Math.atan(slope),lateral=amplitude*Math.sin(phase);
+  px=x-z*Math.sin(yaw);pz=lateral+z*Math.cos(yaw);
+  // A small coordinated heading/bank change, never vertical tail flapping.
+  const heading=.035*held(t,109,17)+.025*Math.sin(t*.11),bank=.052*Math.sin(t*.16)+.025*held(t,117,19);
+  let nx=px*Math.cos(heading)-pz*Math.sin(heading);pz=px*Math.sin(heading)+pz*Math.cos(heading);px=nx;
+  const ny=py*Math.cos(bank)-pz*Math.sin(bank);pz=py*Math.sin(bank)+pz*Math.cos(bank);py=ny;
+  px+=.16*Math.sin(t*.18)+.055*held(t,123,23);
+  pz+=.10*held(t,127,21)+.055*Math.sin(t*.13);
+  py+=.022*Math.sin(t*.19+.5);
  }
  out[0]=x+(px-x)*amplitude;out[1]=y+(py-y)*amplitude;out[2]=z+(pz-z)*amplitude;return out;
 }
