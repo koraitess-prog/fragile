@@ -10,7 +10,7 @@ A minimalist interactive 3D artwork about endangered species. White triangular w
 - Click or tap the animal to transform it. Dragging does not trigger transformation.
 - Press Enter or Space when the sculpture is focused to transform.
 
-The cycle is **Black Rhinoceros → Hawksbill Sea Turtle → Tapanuli Orangutan → Chinese Pangolin → Philippine Eagle → Great Hammerhead → Black Rhinoceros**. The eagle is posed in flight, with controlled wing strokes and quiet glides. The hammerhead swims with a lateral body wave, tail propulsion and restrained banking.
+The cycle is **Black Rhinoceros → Hawksbill Sea Turtle → Tapanuli Orangutan → Chinese Pangolin → Philippine Eagle → Great Hammerhead → Sunda Tiger → Black Rhinoceros**. The eagle is posed in flight, with controlled wing strokes and quiet glides. The hammerhead swims with a lateral body wave, tail propulsion and restrained banking. The tiger holds a poised stance with breathing, alert head movements, weight shifts and tail balance.
 
 Each animal uses an original connected **220-triangle / 112-vertex** mesh. At rest, shared vertices deform together. During the transition, persistent face fragments spread through a broad 3D volume before reconstructing the next species. There is no polygon surface-fill pass.
 
@@ -39,7 +39,7 @@ npm test
 npm run test:framing
 ```
 
-The checks cover all six connected meshes, shared-vertex movement, transition endpoints, fragment correspondence, mouse/touch gesture handling, and camera safety across portrait and landscape views.
+The checks cover all seven connected meshes, shared-vertex movement, transition endpoints, fragment correspondence, mouse/touch gesture handling, and camera safety across portrait and landscape views.
 
 ## Publish updates
 

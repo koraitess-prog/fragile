@@ -22,6 +22,7 @@ export function sharkSwim(t){
  return{phase:TAU*(t/3.6-.09*Math.cos(t*.14-.6)),strength:.88+.20*active,active};
 }
 export function motionState(kind,t){
+ if(kind==='tiger')return gesture(t,151,22,6)>.12?'alert head turn / listening':gesture(t,139,27,7)>.12?'poised shoulder / weight shift':'feline breathing / tail balance';
  if(kind==='shark')return sharkSwim(t).active>.70?'stronger propulsion / gentle bank':'steady lateral swimming';
  if(kind===0||kind==='rhino')return gesture(t,7,19,5.5)>.12?'listening / head carriage':'quiet breathing / settled stance';
  if(kind===1||kind==='turtle'){const p=strokePhase(t);return p<.23?'power stroke':p<.70?'recovery / feathering':'glide / steering';}
@@ -116,6 +117,27 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
   px+=.16*Math.sin(t*.18)+.055*held(t,123,23);
   pz+=.10*held(t,127,21)+.055*Math.sin(t*.13);
   py+=.022*Math.sin(t*.19+.5);
+ }
+ if(species==='tiger'){
+  const planted=smooth(-1.20,-.65,y),torso=smooth(-1.55,-.90,x)*(1-smooth(.85,1.40,x))*smooth(-.60,-.15,y);
+  const breath=Math.sin(TAU*(t/5.7+.028*Math.sin(t*.10)));
+  py+=(y-.08)*.018*breath*torso;pz+=z*.026*breath*torso;
+  // A small anticipatory forward settle through the shoulder, with fixed paws.
+  const poise=gesture(t,139,27,7),balance=held(t,143,15);
+  px+=(-.040*poise+.013*held(t,145,19))*planted;
+  pz+=.026*balance*planted;
+  py-=.032*poise*planted*(1-smooth(-.45,.65,x));
+  const head=(1-smooth(-1.80,-1.25,x))*smooth(-.10,.30,y),attention=gesture(t,151,22,6),direction=hash(Math.floor(t/22)+157)*2-1;
+  const yaw=(.085*direction*attention+.014*held(t,159,13))*head,dx=px+1.40;
+  px=-1.40+dx*Math.cos(yaw)+pz*Math.sin(yaw);pz=-dx*Math.sin(yaw)+pz*Math.cos(yaw);
+  const nod=(.032*attention-.016*held(t,163,17))*head,hx=px+1.40,hy=py-.26;
+  px=-1.40+hx*Math.cos(nod)-hy*Math.sin(nod);py=.26+hx*Math.sin(nod)+hy*Math.cos(nod);
+  const side=Math.sign(z)||1,ear=smooth(.79,1.05,y)*(1-smooth(-1.65,-1.40,x));
+  pz+=side*.025*gesture(t,side>0?167:173,side>0?17:23,1.6)*ear;
+  // Balance travels down the tail with lag; the curled tip makes a small response.
+  const tail=smooth(1.36,3.15,x),lag=Math.max(0,x-1.36)*.80;
+  pz+=(.115*held(t-lag,143,15)+.040*Math.sin(t*.43-lag*.60)+.040*gesture(t-lag,179,29,4.2))*tail;
+  py+=(.020*held(t-lag,181,21)+.014*Math.sin(t*.31-lag*.4))*tail;
  }
  out[0]=x+(px-x)*amplitude;out[1]=y+(py-y)*amplitude;out[2]=z+(pz-z)*amplitude;return out;
 }
