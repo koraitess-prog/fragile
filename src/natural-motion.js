@@ -1,3 +1,4 @@
+import {deformOrangutanVertex,orangutanBehavior,orangutanRigDiagnostics} from './orangutan-behavior.js';
 import {DURATION,ease} from './transitions.js';
 import {deformTigerVertex,tigerBehavior,tigerRigDiagnostics} from './tiger-behavior.js';
 
@@ -52,12 +53,13 @@ export function motionState(kind,t){
  if(kind==='shark')return sharkSwim(t).active>.70?'stronger propulsion / gentle bank':'steady lateral swimming';
  if(kind===0||kind==='rhino')return gesture(t,7,19,5.5)>.12?'listening / head carriage':'quiet breathing / settled stance';
  if(kind===1||kind==='turtle'){const p=strokePhase(t);return p<.23?'power stroke':p<.70?'recovery / feathering':'glide / steering';}
- if(kind===2||kind==='orangutan')return gesture(t,11,23,6)>.12?'attention shift':gesture(t,3,17,4.2)>.12?'shoulder / arm settling':'quiet breathing / balance';
+ if(kind===2||kind==='orangutan')return orangutanBehavior(t).state;
  if(kind==='eagle'){const f=eagleFlight(t);return f.envelope<.08?'extended-wing glide':Math.cos(f.beat)<0?'controlled downstroke':'soft wing recovery';}
  return 'quiet rest';
 }
 export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
  if(species==='tiger')return deformTigerVertex(x,y,z,t,out,amplitude);
+ if(species===2||species==='orangutan')return deformOrangutanVertex(x,y,z,t,out,amplitude);
  let px=x,py=y,pz=z;
  if(species===0||species==='rhino'){
   const torso=smooth(-1.65,-.7,x)*(1-smooth(1.2,1.85,x))*smooth(-.8,-.15,y);
@@ -102,18 +104,6 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
   const tail=smooth(1.05,3.95,x),lag=Math.max(0,x-1.05)*.7;
   pz+=(.15*held(t-lag,63,14)+.075*Math.sin(t*.38-lag*.2))*tail;
   py+=(.018*held(t-lag,71,18)+.009*Math.sin(t*.31-lag*.15))*tail;
- }
- if(species===2||species==='orangutan'){
-  const upper=smooth(-1.28,-.3,y),torso=(1-smooth(.55,.88,Math.abs(x)))*smooth(-.8,-.2,y)*(1-smooth(.6,1,y));
-  const breath=Math.sin(TAU*(t/6.1+.05*Math.sin(t*.09)));py+=(y+.25)*.017*breath*torso;pz+=z*.026*breath*torso;
-  px+=.033*held(t,23,11)*upper;pz+=.018*held(t,5,15)*upper;
-  const attention=gesture(t,11,23,6),direction=hash(Math.floor(t/23)+27)*2-1,head=smooth(.62,1.02,y);
-  const turn=(.065*direction*attention+.012*held(t,39,14))*head,dx=px,dz=pz-.04;
-  px=dx*Math.cos(turn)+dz*Math.sin(turn);pz=.04-dx*Math.sin(turn)+dz*Math.cos(turn);
-  py+=(-.018*attention+.012*held(t,16,13))*head;
-  const side=Math.sign(x)||1,arm=smooth(.65,1.15,Math.abs(x)),settle=gesture(t,side>0?3:19,side>0?17:21,4.2);
-  const shoulder=(.027*held(t,side>0?14:26,12)+.042*settle)*arm,dy=py-.55;
-  px+=-side*dy*Math.sin(shoulder);py=.55+dy*Math.cos(shoulder);pz+=(.020*held(t,side>0?7:18,14)+.024*settle)*arm;
  }
  if(species==='eagle'){
   const flight=eagleFlight(t),side=Math.sign(x)||1,wing=smooth(.34,.90,Math.abs(x)),outer=smooth(.95,2.15,Math.abs(x));
@@ -210,7 +200,7 @@ export function deformVertex(species,x,y,z,t,out,amplitude=1.22){
 
 export function motionWeights(elapsed){return elapsed<0?[1,0]:[1-ease(elapsed/.65),ease((elapsed-(DURATION-.65))/.65)];}
 
-export function createNaturalMotion(pairs,{tigerClockOrigin=0,tigerTimeOffset=0}={}){
+export function createNaturalMotion(pairs,{tigerClockOrigin=0,tigerTimeOffset=0,orangutanClockOrigin=0,orangutanTimeOffset=0,orangutanFixedTime=null}={}){
  const layouts=Array.from({length:pairs[0].length},(_,species)=>{
   const ids=new Uint16Array(pairs.length*3),unique=[],lookup=new Map();
   for(let face=0;face<pairs.length;face++)for(let corner=0;corner<3;corner++){
@@ -220,8 +210,8 @@ export function createNaturalMotion(pairs,{tigerClockOrigin=0,tigerTimeOffset=0}
   }
   return{kind:pairs[0][species].animal,ids,rest:new Float32Array(unique),posed:new Float32Array(unique.length),delta:new Float32Array(unique.length)};
  });
- const point=new Float64Array(3);let maxDisplacement=0,behavior='quiet rest',tiger=null;
- function pose(species,t){const layout=layouts[species],sampleTime=layout.kind==='tiger'?Math.max(0,t-tigerClockOrigin+tigerTimeOffset):t;behavior=motionState(layout.kind,sampleTime);tiger=layout.kind==='tiger'?tigerRigDiagnostics(sampleTime):null;for(let i=0;i<layout.rest.length;i+=3){const {rest,posed,delta}=layout;deformVertex(layout.kind,rest[i],rest[i+1],rest[i+2],sampleTime,point);for(let axis=0;axis<3;axis++){posed[i+axis]=point[axis];delta[i+axis]=posed[i+axis]-rest[i+axis];}maxDisplacement=Math.max(maxDisplacement,Math.hypot(delta[i],delta[i+1],delta[i+2]));}}
+ const point=new Float64Array(3);let maxDisplacement=0,behavior='quiet rest',tiger=null,orangutan=null;
+ function pose(species,t){const layout=layouts[species],sampleTime=layout.kind==='tiger'?Math.max(0,t-tigerClockOrigin+tigerTimeOffset):layout.kind==='orangutan'?(orangutanFixedTime??Math.max(0,t-orangutanClockOrigin+orangutanTimeOffset)):t;behavior=motionState(layout.kind,sampleTime);tiger=layout.kind==='tiger'?tigerRigDiagnostics(sampleTime):null;orangutan=layout.kind==='orangutan'?orangutanRigDiagnostics(sampleTime):null;for(let i=0;i<layout.rest.length;i+=3){const {rest,posed,delta}=layout;deformVertex(layout.kind,rest[i],rest[i+1],rest[i+2],sampleTime,point);for(let axis=0;axis<3;axis++){posed[i+axis]=point[axis];delta[i+axis]=posed[i+axis]-rest[i+axis];}maxDisplacement=Math.max(maxDisplacement,Math.hypot(delta[i],delta[i+1],delta[i+2]));}}
  function apply(positions,species,t,elapsed=-1,sourceCaptured=false){
   maxDisplacement=0;let [outWeight,inWeight]=motionWeights(elapsed);if(elapsed>=0&&sourceCaptured)outWeight=0;const from=layouts[species],to=layouts[(species+1)%layouts.length];
   if(outWeight)pose(species,t);if(inWeight)pose((species+1)%layouts.length,t);
@@ -232,5 +222,5 @@ export function createNaturalMotion(pairs,{tigerClockOrigin=0,tigerTimeOffset=0}
    positions[i]=elapsed<0?from.posed[a]:positions[i]+(outWeight?from.delta[a]*outWeight:0)+(inWeight?to.delta[b]*inWeight:0);
   }
  }
- return{apply,get diagnostics(){return{sharedVertices:layouts.map(l=>l.rest.length/3),maxDisplacement,behavior,...(tiger?{tiger}:{} )};}};
+ return{apply,get diagnostics(){return{sharedVertices:layouts.map(l=>l.rest.length/3),maxDisplacement,behavior,...(tiger?{tiger}:{} ),...(orangutan?{orangutan}:{})};}};
 }

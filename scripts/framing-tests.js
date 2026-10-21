@@ -12,15 +12,15 @@ const pairs=correspondence(...models.map(faceData)),fragments=createFragments(pa
 const root=new THREE.Group();root.add(fragments.mesh);root.position.y=.35;root.rotation.y=.08;
 const camera=new THREE.PerspectiveCamera(34,1,.1,60),target=new THREE.Vector3(0,.05,0),framing=createFraming(camera,root,target),p=new THREE.Vector3();
 let cases=0,margin=1;const viewports=[[360,800],[343,580],[1280,800],[844,390]],times=[0,.15,.4,.75,1.25,1.75,2.25,2.75,3.25,3.75,4.25,4.75,5.25,5.5];
-for(let source=0;source<models.length;source++)for(const [w,h] of viewports)for(let az=0;az<12;az++)for(const elevation of [10,35,70])for(let sample=0;sample<times.length+(models[source].name==='tiger'?18:9);sample++){
- const idle=sample>=times.length,elapsed=idle?-1:times[sample],t=idle?[0,2,5,9,13,17,23,30,35,38,45,49,55,61,66,101,112,120][sample-times.length]:(models[source].name==='tiger'?38:18)+elapsed;
+for(let source=0;source<models.length;source++)for(const [w,h] of viewports)for(let az=0;az<12;az++)for(const elevation of [10,35,70])for(let sample=0;sample<times.length+(['tiger','orangutan'].includes(models[source].name)?18:9);sample++){
+ const idle=sample>=times.length,elapsed=idle?-1:times[sample],t=idle?[0,2,5,9,13,17,23,30,35,38,45,49,55,61,66,101,112,120][sample-times.length]:(['tiger','orangutan'].includes(models[source].name)?38:18)+elapsed;
  const spread=idle?0:ease(elapsed/1.2)*(1-ease((elapsed-4.4)/1.1));root.scale.setScalar(THREE.MathUtils.lerp(w<650?1.18:1.45,1,spread));
  camera.aspect=w/h;camera.fov=w<650?39:34;camera.updateProjectionMatrix();
  const angle=az*Math.PI/6,pitch=elevation*Math.PI/180;
  // Launch toward the initial view, then inspect the same spread from every orbit angle.
  camera.position.set(0,2+target.y,10);camera.lookAt(target);camera.updateMatrixWorld();root.updateMatrixWorld(true);
  const orientation=root.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(camera.getWorldQuaternion(new THREE.Quaternion()));
- let captured=null;if(!idle&&models[source].name==='tiger'){fragments.update(source);motion.apply(fragments.positions,source,38);captured=fragments.positions.slice();}
+ let captured=null;if(!idle&&['tiger','orangutan'].includes(models[source].name)){fragments.update(source);motion.apply(fragments.positions,source,38);captured=fragments.positions.slice();}
  fragments.prepare(source,new THREE.Vector3(-2,0,0),{aspect:w/h,orientation},captured);fragments.update(source,elapsed);motion.apply(fragments.positions,source,t,elapsed,!!captured);
  camera.position.set(10*Math.sin(angle)*Math.cos(pitch),10*Math.sin(pitch)+target.y,10*Math.cos(angle)*Math.cos(pitch));
  framing.update(1/60,w<650,spread);camera.updateMatrixWorld();
