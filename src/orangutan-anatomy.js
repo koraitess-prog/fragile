@@ -6,16 +6,16 @@ export const orangutanGround=-1.48;
 export function createOrangutanAnatomy(){
  const vertices=[],faces=[],tags=[],arms=[],legs=[];
  const add=(p,tag={part:'body'})=>(vertices.push(round(p)),tags.push(tag),vertices.length-1);
- const specs=[[-.58,.43,.30],[-.02,.60,.40],[.65,.67,.35],[.90,.29,.25],[1.25,.62,.32],[1.60,.37,.26]];
+ const specs=[[-.58,.50,.38],[-.02,.67,.49],[.62,.57,.38],[.78,.32,.28],[1.08,.45,.33],[1.39,.31,.27]];
  const rings=specs.map(([y,rx,rz],r)=>Array.from({length:8},(_,j)=>{
   const a=j*Math.PI/4,p=[rx*Math.sin(a),y,rz*Math.cos(a)];
-  if(r===3){if(j===0)p[2]=.42;if(j===1||j===7)p[2]=.27;}
-  if(r===4){if(j===0)p[2]=.49;if(j===1||j===7){p[0]*=.73;p[1]=1.28;p[2]=.38;}if(j===2||j===6)p[2]=.06;}
-  if(r===5){if(j===0){p[1]=1.53;p[2]=.36;}if(j===1||j===7){p[1]=1.64;p[2]=.27;}}
+  if(r===3){if(j===0)p[2]=.44;if(j===1||j===7)p[2]=.34;}
+  if(r===4){if(j===0)p[2]=.55;if(j===1||j===7){p[0]*=.90;p[1]=1.12;p[2]=.40;}if(j===2||j===6)p[2]=.06;}
+  if(r===5){if(j===0){p[1]=1.34;p[2]=.36;}if(j===1||j===7){p[1]=1.41;p[2]=.32;}}
   return add(p,{part:r>=4?'head':'body',ring:r});
  }));
  for(let r=0;r<5;r++)for(let j=0;j<8;j++){const k=(j+1)%8,[a,b,c,d]=[rings[r][j],rings[r][k],rings[r+1][j],rings[r+1][k]];faces.push({ids:[a,b,c],r,j,half:0},{ids:[b,d,c],r,j,half:1});}
- const bottom=add([0,-.88,0]),crown=add([0,1.72,-.015],{part:'head'});
+ const bottom=add([0,-.88,0]),crown=add([0,1.53,-.045],{part:'head'});
  for(let j=0;j<8;j++){const k=(j+1)%8;faces.push({ids:[bottom,rings[0][k],rings[0][j]],cap:'bottom',j},{ids:[crown,rings[5][j],rings[5][k]]});}
  const center=ids=>[0,1,2].map(k=>ids.reduce((s,i)=>s+vertices[i][k],0)/ids.length);
  const remove=f=>faces.splice(faces.indexOf(f),1);
@@ -35,10 +35,10 @@ export function createOrangutanAnatomy(){
  for(const side of [1,-1]){
   const rim=cut(1,side>0?1:6),root=[side*.68,.65,.08],elbow=[side*1.16,-.18,.10],wrist=[side*1.22,-1.16,.29],hand=[side*1.21,-1.42,.35];
   const upper=elbow.map((v,k)=>v-root[k]),lower=wrist.map((v,k)=>v-elbow[k]);
-  const upperCenter=[side*.90,.50,.08];
+  const upperCenter=[side*.90,.43,.08];
   const arm={side,root,elbow,wrist,hand};arms.push(arm);
   let previous=rim;
-  for(const [ring,p,direction,rx,rz] of [[0,upperCenter,[side,0,0],.21,.22],[1,elbow,upper,.18,.19],[2,wrist,lower,.12,.14],[3,hand,[0,-1,0],.17,.085]]){
+  for(const [ring,p,direction,rx,rz] of [[0,upperCenter,[side,0,0],.27,.25],[1,elbow,upper,.22,.22],[2,wrist,lower,.12,.14],[3,hand,[0,-1,0],.20,.11]]){
    const next=section(p,direction,rx,rz,{part:'arm',side,ring},previous);bridge(previous,next,ring===0&&side>0);previous=next;
   }
   cap(previous);
@@ -64,8 +64,8 @@ export function createOrangutanAnatomy(){
   const foot=faces.filter(f=>f.ids.every(i=>tags[i].part==='leg'&&tags[i].side===side&&tags[i].ring>=1)).sort((a,b)=>side*(center(a.ids)[0]-center(b.ids)[0]))[0];
   peak(foot,[side*.20,-1.40,.46],{part:'leg',side,ring:2});
  }
- peak(faces.find(f=>f.r===4&&f.j===0&&f.half===0),[.18,1.43,.44],{part:'head'});
- peak(faces.find(f=>f.r===4&&f.j===7&&f.half===1),[-.18,1.43,.44],{part:'head'});
+ peak(faces.find(f=>f.r===4&&f.j===0&&f.half===0),[.14,1.27,.31],{part:'head'});
+ peak(faces.find(f=>f.r===4&&f.j===7&&f.half===1),[-.14,1.27,.31],{part:'head'});
  // Orient the connected triangle surface once. No separate overlapping shells.
  const edgeMap=new Map();
  faces.forEach((f,i)=>f.ids.forEach((a,j)=>{const b=f.ids[(j+1)%3],key=[a,b].sort((a,b)=>a-b).join('|');if(!edgeMap.has(key))edgeMap.set(key,[]);edgeMap.get(key).push({i,a,b});}));

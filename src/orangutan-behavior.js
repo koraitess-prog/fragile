@@ -27,7 +27,7 @@ const sub=(a,b)=>a.map((v,k)=>v-b[k]),length=(a,b)=>Math.hypot(...sub(a,b));
 const turn=(a,b)=>new Quaternion().setFromUnitVectors(V(a).normalize(),V(b).normalize());
 const quat=(x=0,y=0,z=0)=>new Quaternion().setFromEuler(new Euler(x,y,z,'YXZ'));
 function body(p,t,s,amplitude){
- const [x,y,z]=p,upper=smooth(-.52,.65,y),torso=1-smooth(.88,1.10,y),breath=.012*Math.sin(t*Math.PI*2/6.8)*amplitude;
+ const [x,y,z]=p,upper=smooth(-.52,.65,y),torso=1-smooth(.76,.98,y),breath=.012*Math.sin(t*Math.PI*2/6.8)*amplitude;
  const lean=-s.side*.115*s.transfer+.025*held(t,421,13)*(1-s.rest),pitch=.24*s.rest+.055*s.transfer;
  const v=V([x*(1+breath*torso*upper),y,z*(1+1.5*breath*torso*upper)]);
  v.y+=breath*upper*torso;
@@ -35,10 +35,10 @@ function body(p,t,s,amplitude){
  const rel=V([0,-.50,0]);v.sub(rel).applyQuaternion(quat(pitch*upper,-s.side*.065*s.reach*upper,.035*s.side*s.transfer*upper)).add(rel);
  v.x+=lean*(.25+.75*upper);v.y-=.45*s.rest;v.z-=.40*s.rest;
  // The reaching shoulder elevates/protracts; the pelvis counterbalances.
- const shoulder=smooth(.22,.64,y)*(1-smooth(.88,1.10,y)),near=smooth(0,.40,s.side*x);
+ const shoulder=smooth(.22,.64,y)*(1-smooth(.76,.98,y)),near=smooth(0,.40,s.side*x);
  v.y+=.10*s.reach*shoulder*near;v.z+=.075*s.reach*shoulder*near;
- const headWeight=smooth(.92,1.20,y);
- if(headWeight){const pivot=V(body([0,.90,0],t,s,amplitude)),q=quat((.055*held(t,427,11)-.07*s.reach-.05*s.rest)*headWeight,(.16*held(t,431,9)-s.side*.18*s.look+s.side*.13*s.reach)*headWeight,0);v.sub(pivot).applyQuaternion(q).add(pivot);}
+ const headWeight=smooth(.80,1.03,y);
+ if(headWeight){const pivot=V(body([0,.78,0],t,s,amplitude)),q=quat((.055*held(t,427,11)-.07*s.reach-.05*s.rest)*headWeight,(.16*held(t,431,9)-s.side*.18*s.look+s.side*.13*s.reach)*headWeight,0);v.sub(pivot).applyQuaternion(q).add(pivot);}
  return v.toArray();
 }
 // A two-bone solver controls the wrists/ankles. Ring frames at joints bisect
@@ -53,19 +53,25 @@ function solve(root,target,restJoint,upper,lower,pole){
 let cachedTime=NaN,cachedAmplitude=NaN,cached;
 function pose(t,amplitude=1.22){
  if(t===cachedTime&&amplitude===cachedAmplitude)return cached;
- const s=orangutanBehavior(t),bodyPoints=anatomy.vertices.map(p=>body(p,t,s,amplitude));
+ const behavior=orangutanBehavior(t),s={...behavior,rest:.35+.65*behavior.rest},bodyPoints=anatomy.vertices.map(p=>body(p,t,s,amplitude));
  const legs=anatomy.legs.map(l=>{
   const root=body(l.root,t,s,amplitude),target=l.ankle.slice(),q=solve(root,target,l.knee,length(l.root,l.knee),length(l.knee,l.ankle),[l.side*.85,-.80,.85]);
   q.upperRotation=turn(sub(l.knee,l.root),sub(q.joint,root));q.lowerRotation=turn(sub(l.ankle,l.knee),sub(target,q.joint));q.jointRotation=q.upperRotation.clone().slerp(q.lowerRotation,.5);return q;
  });
  const arms=anatomy.arms.map(a=>{
-  const active=a.side===s.side,r=active?s.reach:0,root=body(a.root,t,s,amplitude),rest=a.wrist.slice();
+  const active=a.side===s.side,r=active?s.reach:0,root=body(a.root,t,s,amplitude),rest=a.side>0?[.85,1.75,.45]:a.wrist.slice();
   // A deliberate exploration reach, not a claim of grasping an invisible vine.
   const goal=[a.side*1.65,1.12,.72],wrist=rest.map((v,i)=>mix(v,goal[i],r));
-  if(!active&&s.lap){const knee=legs[anatomy.legs.findIndex(l=>l.side===a.side)].joint,lap=[a.side*1.12,knee[1]+.30,knee[2]+.32];for(let i=0;i<3;i++)wrist[i]=mix(wrist[i],lap[i],s.lap);}
-  const q=solve(root,wrist,a.elbow,length(a.root,a.elbow),length(a.elbow,a.wrist),a.elbow.map((v,i)=>mix(v,[a.side*1.55,-.30,(!active?s.lap:0)*.70-.12][i],Math.max(s.rest,r))));
-  q.upperRotation=turn(sub(a.elbow,a.root),sub(q.joint,root));q.lowerRotation=turn(sub(a.wrist,a.elbow),sub(wrist,q.joint));q.jointRotation=q.upperRotation.clone().slerp(q.lowerRotation,.5);
-  q.handRotation=quat(-.65*r-.20*s.lap*(active?0:1),a.side*.12*r,-a.side*.10*r);q.wristRotation=q.lowerRotation.clone().slerp(q.handRotation,.55);q.supported=!active||r<1e-7;q.lap=!active?s.lap:0;return q;
+  if(!active&&a.side<0&&s.lap){const knee=legs[anatomy.legs.findIndex(l=>l.side===a.side)].joint,lap=[a.side*1.12,knee[1]+.30,knee[2]+.32];for(let i=0;i<3;i++)wrist[i]=mix(wrist[i],lap[i],s.lap);}
+  const q=solve(root,wrist,a.elbow,length(a.root,a.elbow),length(a.elbow,a.wrist),a.elbow.map((v,i)=>mix(v,[a.side*1.55,-.30,(!active&&a.side<0?s.lap:0)*.70-.12][i],Math.max(s.rest,r))));
+  // Hinge angles are unwrapped before averaging. Quaternion shortest-path
+  // interpolation can flip the elbow frame when an arm passes overhead.
+  const angles=d=>[Math.atan2(d[0],-d[1]),-Math.atan2(d[2],Math.hypot(d[0],d[1]))];
+  const unwrap=(a,b)=>{while(b-a>Math.PI)b-=2*Math.PI;while(b-a< -Math.PI)b+=2*Math.PI;return b;};
+  const ru=angles(sub(a.elbow,a.root)),rl=angles(sub(a.wrist,a.elbow)),pu=angles(sub(q.joint,root)),pl=angles(sub(wrist,q.joint));rl[0]=unwrap(ru[0],rl[0]);pl[0]=unwrap(pu[0],pl[0]);
+  const rotation=([z,x])=>quat(0,0,z).multiply(quat(x,0,0)),map=(r,p)=>rotation(p).multiply(rotation(r).invert());
+  q.upperRotation=map(ru,pu);q.lowerRotation=map(rl,pl);q.jointRotation=map(ru.map((v,i)=>(v+rl[i])/2),pu.map((v,i)=>(v+pl[i])/2));
+  q.handRotation=new Quaternion().slerp(q.lowerRotation,a.side>0?1:Math.max(r,s.lap*.65)).multiply(quat(-.18*r-.10*s.lap*(active?0:1),a.side*.12*r,0));q.wristRotation=q.lowerRotation.clone().slerp(q.handRotation,.55);q.supported=!active||r<1e-7;q.lap=!active&&a.side<0?s.lap:0;return q;
  });
  const points=anatomy.vertices.map((p,i)=>{
   const tag=anatomy.tags[i];if(tag.part==='body'||tag.part==='head')return bodyPoints[i];
